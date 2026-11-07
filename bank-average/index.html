@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#173a70">
+<meta name="description" content="在浏览器本地保存流水，计算银行日终资产、区间日均资产和较基准净增金额。">
+<title>银行日均资产计算器</title>
+<style>
+:root{--ink:#17304c;--muted:#65758c;--primary:#2563eb;--blue:#173a70;--bg:#f3f6fc;--surface:#fff;--line:#e3eaf3;--green:#0b8f6a;--red:#d64d59;--orange:#a76710;--shadow:0 9px 28px rgba(32,61,108,.06)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}button,input,select{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.5}
+.hero{background:linear-gradient(120deg,#193d77,#3166cb);color:#fff;padding:32px max(20px,calc((100vw - 1140px)/2)) 64px}.hero h1{font-size:27px;letter-spacing:.02em;margin:0 0 7px}.hero p{margin:0;color:#dce8ff;font-size:14px}.wrap{max-width:1140px;margin:-39px auto 45px;padding:0 18px}.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:22px;margin-bottom:17px}.panel h2{font-size:18px;margin:0 0 15px;display:flex;align-items:center;gap:8px}.panel h2 small{font-size:12px;font-weight:400;color:var(--muted)}.panel h3{font-size:14px;margin:16px 0 11px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.metric{background:#f5f8fe;border-radius:12px;padding:15px 16px;min-width:0}.metric .label{font-size:12px;color:#6c7b93}.metric .value{font-size:22px;font-weight:750;margin:6px 0 0;white-space:nowrap;letter-spacing:-.03em;font-variant-numeric:tabular-nums}.metric .hint{font-size:12px;color:#70829c;margin-top:3px}.metric .value.green{color:var(--green)}.metric .value.red{color:var(--red)}
+label{display:block;font-size:13px;font-weight:600;margin:0 0 6px;color:#40546e}input,select{min-width:0;max-width:100%;width:100%;padding:10px 11px;border-radius:9px;border:1px solid #cfd9e8;background:#fff;color:var(--ink);outline:none}input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px #2563eb1e}input[type="date"]{padding:9px}input::placeholder{color:#9aa7b9}.sub{font-size:12px;color:var(--muted);margin:6px 0 0}.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:18px}.btn{padding:10px 16px;border-radius:9px;background:#fff;color:#28415f;border:1px solid #cfd9e8;font-weight:600}.btn:hover{background:#f3f7fe}.btn.primary{border-color:var(--primary);background:var(--primary);color:#fff}.btn.primary:hover{background:#1e52c7}.btn.danger{color:var(--red)}.btn.small{padding:6px 10px;font-size:12px}.callout{padding:11px 13px;background:#eff6ff;border:1px solid #d6e5ff;color:#2a4b7b;border-radius:10px;font-size:13px;margin-top:15px}.callout.warn{background:#fff8ec;border-color:#f1dfbf;color:#80520e}.callout.err{background:#fff1f2;border-color:#ffdae0;color:#ac3143}.recordform{display:grid;grid-template-columns:1.25fr 1fr 1.2fr 1.8fr auto;gap:10px;align-items:end}.tablewrap{overflow:auto;margin-top:16px;border:1px solid var(--line);border-radius:12px}table{width:100%;border-collapse:collapse;text-align:left;font-size:13px}th,td{padding:11px 13px;white-space:nowrap;border-bottom:1px solid #eaf0f7}th{background:#f7f9fd;color:#5a6d87;font-weight:600}tr:last-child td{border-bottom:0}.right{text-align:right;font-variant-numeric:tabular-nums}.out{color:var(--red)}.in{color:var(--green)}.internal{color:var(--muted)}.notes{color:#66768c;max-width:260px;overflow:hidden;text-overflow:ellipsis}.empty{text-align:center;color:#92a0b3;padding:22px}.flex-between{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.status{font-size:12px;color:#788ba1}.footer{color:#7a8aa0;font-size:12px;text-align:center;margin-top:25px}.pill{display:inline-block;border-radius:100px;background:#eaf1ff;color:#2454a5;padding:2px 8px;font-size:11px}.divider{height:1px;background:var(--line);margin:17px 0}.optional{font-size:12px;color:#7f8c9e;font-weight:400}.hide{display:none!important}
+@media(max-width:920px){.grid,.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.recordform{grid-template-columns:repeat(2,minmax(0,1fr))}.recordform .memo{grid-column:1/-1}.recordform .add{grid-column:1/-1}}@media(max-width:560px){.hero{padding:26px 18px 65px}.hero h1{font-size:23px}.wrap{padding:0 11px}.panel{padding:16px;border-radius:13px}.grid{gap:11px}.summary{gap:9px}.metric{padding:11px}.metric .value{font-size:17px}.metric .label{font-size:11px}.recordform{gap:10px}.btn{padding:10px 12px}table{font-size:12px}}
+</style>
+</head>
+<body>
+<header class="hero"><h1>银行日均资产计算器</h1><p>精确到自然日 · 自动保存 · 银行数据校准 · 预测达标资金</p></header>
+<main class="wrap">
+<section class="panel" aria-label="计算结果">
+<div class="flex-between"><h2 style="margin:0">计算结果</h2><span id="saveStatus" class="status">本地保存</span></div>
+<div class="summary" style="margin-top:16px">
+<div class="metric"><div class="label">目标日日终资产</div><div id="vBalance" class="value">—</div><div id="hBalance" class="hint">等待计算</div></div>
+<div class="metric"><div class="label">截至目标日累计日均</div><div id="vAverage" class="value">—</div><div id="hAverage" class="hint">自然日计算</div></div>
+<div class="metric"><div class="label">日均较基准净增</div><div id="vDiff" class="value">—</div><div id="hDiff" class="hint">日均 - 考核基准</div></div>
+<div class="metric"><div class="label">期末预计日均净增</div><div id="vProjected" class="value">—</div><div id="hProjected" class="hint">按已知流水预测</div></div>
+</div>
+<div id="summaryNote" class="callout">先填写基准信息和资金流水，点击「开始计算」。转存到本行内部产品不会重复计入资产。</div>
+</section>
+
+<section class="panel">
+<h2>① 基准与考核周期</h2>
+<div class="grid">
+<div><label for="baseDate">基准日期（日终）</label><input id="baseDate" data-field type="date"><p class="sub">例如 2026-10-31</p></div>
+<div><label for="baseAmount">基准日终资产（元）</label><input id="baseAmount" data-field type="number" min="0" step="0.01" placeholder="例如 100000.00"></div>
+<div><label for="periodStart">考核开始日期</label><input id="periodStart" data-field type="date"></div>
+<div><label for="periodEnd">考核结束日期</label><input id="periodEnd" data-field type="date"></div>
+<div><label for="calcDate">目标统计日期（日终）</label><input id="calcDate" data-field type="date"><p class="sub">凌晨查询前一日数据，应选前一日</p></div>
+</div>
+<div class="divider"></div>
+<h3>银行官方系统数据 <span class="optional">（可选；用于校准，建议填写）</span></h3>
+<div class="grid">
+<div><label for="bankDate">系统统计截止日期</label><input id="bankDate" data-field type="date"><p class="sub">新录入的流水日期须晚于此日</p></div>
+<div><label for="bankAvg">系统显示累计日均（元）</label><input id="bankAvg" data-field type="number" min="0" step="0.01" placeholder="留空则按流水推算"></div>
+<div><label for="bankIncrement">系统显示日均净增（元）</label><input id="bankIncrement" data-field type="number" step="0.01" placeholder="可反推官方基准"></div>
+<div><label for="bankEnd">该截止日日终总资产（元）</label><input id="bankEnd" data-field type="number" min="0" step="0.01" placeholder="建议填写以提高预测精度"><p class="sub">未填时采用历史流水推算</p></div>
+</div>
+<div class="toolbar"><button id="calculate" class="btn primary" type="button">开始计算 / 重新计算</button><span class="status" id="dirtyStatus"></span></div>
+</section>
+
+<section class="panel">
+<div class="flex-between"><h2 style="margin:0">② 资金流水</h2><span class="pill">每一笔记录具体日期</span></div>
+<p class="sub">外部转入增加资产，外部转出减少资产；同一家银行内的活期转存、理财转换等仅调整产品形态，不改变总资产。</p>
+<div class="recordform" style="margin-top:15px">
+<div><label for="newDate">交易日期</label><input id="newDate" type="date"></div>
+<div><label for="newType">流水类型</label><select id="newType"><option value="in">外部转入 +</option><option value="out">外部转出 −</option><option value="internal">内部转存（不影响资产）</option></select></div>
+<div><label for="newAmount">金额（元，填正数）</label><input id="newAmount" type="number" min="0.01" step="0.01" placeholder="0.00"></div>
+<div class="memo"><label for="newMemo">备注 <span class="optional">（可选）</span></label><input id="newMemo" maxlength="80" placeholder="银行/账户/说明"></div>
+<div class="add"><button id="addRecord" class="btn primary" type="button">添加流水</button></div>
+</div>
+<div id="recordMessage" class="sub" role="status" style="margin-top:10px"></div>
+<div class="tablewrap"><table><thead><tr><th>日期</th><th>类型</th><th class="right">金额（元）</th><th>备注</th><th>操作</th></tr></thead><tbody id="recordBody"><tr><td class="empty" colspan="5">暂无流水记录</td></tr></tbody></table></div>
+</section>
+
+<section class="panel">
+<h2>③ 目标达标测算 <small>（可选）</small></h2>
+<div class="grid">
+<div><label for="goalDiff">目标期末日均净增（元）</label><input id="goalDiff" data-field type="number" min="0" step="0.01" placeholder="例如 2000000"></div>
+<div><label for="plannedDate">计划新增资金入账日期</label><input id="plannedDate" data-field type="date"></div>
+</div>
+<div id="goalResult" class="callout" style="display:none"></div>
+<p class="sub">假设计划新增资金在所填日期当天计入，且始终保留至考核结束；不考虑利息、基金净值波动、到账延迟或银行统计口径差异。</p>
+</section>
+
+<section class="panel">
+<div class="flex-between"><h2 style="margin:0">④ 每日资产明细</h2><span id="detailPeriod" class="status">待计算</span></div>
+<div class="tablewrap"><table><thead><tr><th>日期</th><th class="right">推算日终资产</th><th class="right">截至当日日均</th><th>说明</th></tr></thead><tbody id="detailBody"><tr><td colspan="4" class="empty">暂无计算结果</td></tr></tbody></table></div>
+<p class="sub">如输入银行官方累计日均，统计截止日之前的日均使用官方汇总值校准；单日余额仍可能是根据流水推算的，并非银行公布值。</p>
+</section>
+
+<section class="panel">
+<h2>⑤ 数据保存与迁移</h2>
+<p class="sub">所有输入和流水默认保存在<strong>当前浏览器的 localStorage</strong>，刷新页面可恢复；仅部署静态 HTML 到 GitHub，不会把个人资产数据上传到仓库。不同设备/浏览器不会自动同步，清除网站数据可能丢失记录，建议定期导出备份。</p>
+<div class="toolbar">
+<button id="exportData" class="btn" type="button">导出 JSON 备份</button>
+<button id="importData" class="btn" type="button">导入 JSON 备份</button>
+<button id="resetData" class="btn danger" type="button">清空所有本地数据</button>
+<input id="fileInput" class="hide" type="file" accept=".json,application/json">
+</div>
+</section>
+<div class="footer">本工具仅进行数学模拟；银行最终统计结果以银行官方口径为准。数据存储在本机，不构成云端备份。</div>
+</main>
+<script>
+(function(){
+'use strict';
+const KEY='bank-average-assets-calculator-v1';
+const FIELDS=['baseDate','baseAmount','periodStart','periodEnd','calcDate','bankDate','bankAvg','bankIncrement','bankEnd','goalDiff','plannedDate'];
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,'0');
+const fmtDate=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const dateOf=s=>new Date(s+'T12:00:00');
+const validDate=s=>typeof s==='string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(dateOf(s).getTime()) && fmtDate(dateOf(s))===s;
+const dayAfter=s=>{let d=dateOf(s);d.setDate(d.getDate()+1);return fmtDate(d)};
+const dayBefore=s=>{let d=dateOf(s);d.setDate(d.getDate()-1);return fmtDate(d)};
+const dayCount=(a,b)=>{let x=dateOf(a),y=dateOf(b);return Math.round((Date.UTC(y.getFullYear(),y.getMonth(),y.getDate())-Date.UTC(x.getFullYear(),x.getMonth(),x.getDate()))/86400000)+1};
+const cents=s=>{if(s===''||s===null||typeof s==='undefined')return null;let n=Number(s);return Number.isFinite(n)?Math.round(n*100):null};
+const money=c=>Number.isFinite(c)?(c/100).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
+const signed=c=>(c>0?'+':'')+money(c);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const init=()=>{
+ const now=new Date(),y=now.getFullYear(),m=now.getMonth(),start=fmtDate(new Date(y,m,1)),end=fmtDate(new Date(y,m+1,0)),today=fmtDate(now);
+ return {version:1,baseDate:dayBefore(start),baseAmount:'',periodStart:start,periodEnd:end,calcDate:today,bankDate:'',bankAvg:'',bankIncrement:'',bankEnd:'',goalDiff:'',plannedDate:today,records:[]};
+};
+let data=init(),storageAvailable=true;
+try{let saved=localStorage.getItem(KEY);if(saved){let obj=JSON.parse(saved);if(obj&&typeof obj==='object'&&Array.isArray(obj.records))data=Object.assign(init(),obj);}}catch(e){storageAvailable=false;}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(data));$('saveStatus').textContent='✓ 已自动保存到本机';storageAvailable=true;}catch(e){storageAvailable=false;$('saveStatus').textContent='⚠ 无法本地保存，请导出 JSON';}}
+function fill(){FIELDS.forEach(id=>$(id).value=data[id]===undefined?'':data[id]);}
+function pull(){FIELDS.forEach(id=>data[id]=$(id).value);}
+function note(msg,kind){$('summaryNote').className='callout'+(kind?' '+kind:'');$('summaryNote').textContent=msg;}
+function markDirty(){$('dirtyStatus').textContent='参数已修改，点击「重新计算」更新结果';}
+function renderRows(){
+ const body=$('recordBody');
+ if(!data.records.length){body.innerHTML='<tr><td class="empty" colspan="5">暂无流水记录</td></tr>';return;}
+ body.innerHTML=data.records.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).map(r=>
+ '<tr><td>'+esc(r.date)+'</td><td class="'+(r.type==='in'?'in':r.type==='out'?'out':'internal')+'">'+({in:'外部转入',out:'外部转出',internal:'内部转存'}[r.type]||'未知')+'</td><td class="right">'+money(cents(r.amount))+'</td><td class="notes" title="'+esc(r.memo||'')+'">'+esc(r.memo||'—')+'</td><td><button class="btn small danger remove" data-id="'+esc(r.id)+'" type="button">删除</button></td></tr>'
+ ).join('');
+}
+function renderMetrics(id,value,sub,kind){$(id).textContent=value;$(id).className='value'+(kind?' '+kind:'');$('h'+id.substring(1)).textContent=sub;}
+function calculate(){
+ pull();
+ try{
+  const base=data.baseDate,start=data.periodStart,end=data.periodEnd,at=data.calcDate;
+  if(![base,start,end,at].every(validDate))throw Error('请完整填写有效的基准日期、考核开始/结束日期和目标日期。');
+  if(!(base<start && start<=at && at<=end))throw Error('日期必须满足：基准日期 < 考核开始日期 ≤ 目标日期 ≤ 考核结束日期。');
+  if(dayCount(start,end)>370)throw Error('考核周期不得超过 370 个自然日。');
+  const bc=cents(data.baseAmount);
+  if(bc===null||bc<0)throw Error('请输入非负的基准日终资产。');
+  const sysDate=data.bankDate;
+  if(sysDate && !validDate(sysDate))throw Error('银行系统统计日期无效。');
+  if(sysDate && (sysDate<start || sysDate>end))throw Error('银行系统统计截止日期必须在考核周期内。');
+  const sysAvg=cents(data.bankAvg),sysDiff=cents(data.bankIncrement),sysEnd=cents(data.bankEnd);
+  if(sysAvg!==null && (!sysDate || sysAvg<0))throw Error('输入系统日均资产时，请同时填写有效的银行系统统计截止日期。');
+  if(sysEnd!==null && (!sysDate||sysEnd<0))throw Error('输入系统日终资产时，请先填写银行系统统计截止日期。');
+  if(sysDiff!==null && (sysAvg===null||!sysDate))throw Error('输入系统日均净增时，需要同时填写系统统计截止日期和系统累计日均。');
+  for(const r of data.records){if(!validDate(r.date)||r.date<=base||!['in','out','internal'].includes(r.type)||cents(r.amount)===null||cents(r.amount)<=0)throw Error('发现无效流水。流水日期须晚于基准日，金额应为正数。');}
+  const tx=data.records.filter(r=>r.type!=='internal').map(r=>({date:r.date,amount:cents(r.amount)*(r.type==='in'?1:-1)}));
+  const sum=(after,until)=>tx.reduce((a,r)=>a+(r.date>after&&r.date<=until?r.amount:0),0);
+  const rawBalance=d=>bc+sum(base,d);
+  const balance=d=>(sysEnd!==null && sysDate && d>=sysDate)?sysEnd+sum(sysDate,d):rawBalance(d);
+  const average=last=>{
+   const hasAnchor=sysAvg!==null&&sysDate&&sysDate<=last;
+   let total=hasAnchor?sysAvg*dayCount(start,sysDate):0;
+   let d=hasAnchor?dayAfter(sysDate):start;
+   for(;d<=last;d=dayAfter(d))total+=balance(d);
+   return total/dayCount(start,last);
+  };
+  const benchmark=(sysDiff!==null)?sysAvg-sysDiff:bc;
+  const avg=average(at),projection=average(end),diff=avg-benchmark,pdiff=projection-benchmark;
+  renderMetrics('vBalance',money(balance(at)),at+' 日终');
+  renderMetrics('vAverage',money(avg),start+' 至 '+at);
+  renderMetrics('vDiff',signed(diff),'考核基准：'+money(benchmark),diff>=0?'green':'red');
+  renderMetrics('vProjected',signed(pdiff),end+' 日终预测',pdiff>=0?'green':'red');
+  const notices=[];
+  if(sysAvg!==null&&sysDate<=at)notices.push('已用银行 '+sysDate+' 截至日的官方累计日均校准历史。');
+  if(sysAvg!==null&&sysDate>at)notices.push('银行系统截止日期晚于目标日，本次目标日计算未采用该校准值。');
+  if(sysAvg!==null&&sysEnd===null&&sysDate<end)notices.push('未填写系统截止日日终总资产；未来余额按基准与已记录历史流水推算，若历史流水不完整，预测可能偏差。');
+  if(sysDiff!==null&&Math.abs((sysAvg-sysDiff)-bc)>1)notices.push('官方隐含考核基准 '+money(benchmark)+' 与手填基准 '+money(bc)+' 不同，净增计算采用官方隐含基准。');
+  if(data.records.some(r=>r.date>end))notices.push('考核结束日期之后的流水不参与本次计算。');
+  if(data.records.some(r=>r.date<=base))notices.push('基准日期以前的流水不会重复计入。');
+  note(notices.length?notices.join(' '):'计算完成。按自然日计算，交易在所填日期当天计入；内部转存不改变总资产。');
+  let goalEl=$('goalResult');goalEl.style.display='none';
+  if(data.goalDiff!==''){
+    const goal=cents(data.goalDiff);
+    if(goal===null||goal<0)throw Error('目标日均净增金额不能为负数。');
+    if(!validDate(data.plannedDate)||data.plannedDate<start||data.plannedDate>end)throw Error('计划新增资金入账日期必须处于考核周期内。');
+    if(sysDate && data.plannedDate<=sysDate && sysAvg!==null)throw Error('使用银行系统历史校准时，计划新入金日期必须晚于系统统计截止日期。');
+    const active=dayCount(data.plannedDate,end),total=dayCount(start,end);
+    const gap=(benchmark+goal)-projection;
+    const need=Math.max(0,Math.ceil(gap*total/active-1e-8));
+    goalEl.style.display='block';
+    goalEl.textContent='期末预计累计日均：'+money(projection)+' 元；目标日均净增：'+money(goal)+' 元。若在 '+data.plannedDate+' 一次性额外转入并持有至 '+end+'，至少还需 '+money(need)+' 元（计入 '+active+' / '+total+' 天）。';
+  }
+  let rows=[],d=start;
+  for(;d<=at;d=dayAfter(d)){
+   const calibrated=sysAvg!==null&&sysDate&&d<=sysDate;
+   rows.push('<tr><td>'+d+'</td><td class="right">'+money(balance(d))+'</td><td class="right">'+(calibrated&&d<sysDate?'—':money(average(d)))+'</td><td>'+(calibrated?(d===sysDate?'官方累计日均':'银行历史区间 · 单日均值未知'):'流水推算')+'</td></tr>');
+  }
+  $('detailBody').innerHTML=rows.join('');
+  $('detailPeriod').textContent=start+' 至 '+at+'（'+dayCount(start,at)+' 天）';
+  $('dirtyStatus').textContent='';
+  save();
+ }catch(e){note(e.message||'计算失败，请检查输入。','err');$('dirtyStatus').textContent='请修改后重新计算';}
+}
+function addRecord(){
+ pull();
+ let date=$('newDate').value,type=$('newType').value,amount=cents($('newAmount').value);
+ const message=$('recordMessage');
+ if(!validDate(date)){message.textContent='请选择完整且有效的交易日期。';return;}
+ if(data.bankDate&&validDate(data.bankDate)&&date<=data.bankDate){message.textContent='新增流水日期必须晚于银行系统统计截止日期 '+data.bankDate+'。历史流水请通过备份导入或先清空系统截止日期再录入。';return;}
+ if(data.baseDate&&validDate(data.baseDate)&&date<=data.baseDate){message.textContent='流水日期必须晚于基准日期 '+data.baseDate+'。';return;}
+ if(amount===null||amount<=0){message.textContent='请输入大于 0 的金额（无需输入正负号）。';return;}
+ if(!['in','out','internal'].includes(type)){message.textContent='请选择合法的流水类型。';return;}
+ data.records.push({id:Date.now()+Math.floor(Math.random()*1000000),date,type,amount:(amount/100).toFixed(2),memo:$('newMemo').value.slice(0,80)});
+ $('newAmount').value='';$('newMemo').value='';$('newDate').value=dayAfter(date);message.textContent='✓ 流水已添加并保存';save();renderRows();calculate();
+}
+function exportData(){
+ pull();save();
+ const blob=new Blob([JSON.stringify({schema:'bank-average-assets-v1',exportedAt:new Date().toISOString(),data},null,2)],{type:'application/json;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='银行日均资产备份-'+fmtDate(new Date())+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function importData(file){
+ if(!file)return;
+ const reader=new FileReader();
+ reader.onload=()=>{
+  try{
+   const parsed=JSON.parse(reader.result);const incoming=parsed.data||parsed;
+   if(!incoming||typeof incoming!=='object'||!Array.isArray(incoming.records)||incoming.records.length>10000)throw Error('JSON 数据格式不符合要求。');
+   if(!confirm('导入会覆盖当前本地参数与流水。确认继续吗？'))return;
+   const fresh=Object.assign(init(),incoming);
+   fresh.records=incoming.records.map((r,i)=>({id:Number(r.id)||i+1,date:String(r.date||''),type:String(r.type||''),amount:String(r.amount||''),memo:String(r.memo||'').slice(0,80)}));
+   data=fresh;fill();renderRows();save();calculate();$('recordMessage').textContent='✓ 已导入 '+fresh.records.length+' 条流水';
+  }catch(e){alert('导入失败：'+e.message);}
+ };
+ reader.onerror=()=>alert('无法读取该文件。');
+ reader.readAsText(file,'utf-8');
+}
+FIELDS.forEach(id=>{$(id).addEventListener('input',()=>{pull();save();markDirty();});});
+$('calculate').addEventListener('click',calculate);
+$('addRecord').addEventListener('click',addRecord);
+$('newAmount').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addRecord();}});
+$('recordBody').addEventListener('click',e=>{const btn=e.target.closest('button.remove');if(!btn)return;data.records=data.records.filter(r=>String(r.id)!==btn.dataset.id);save();renderRows();calculate();});
+$('exportData').addEventListener('click',exportData);
+$('importData').addEventListener('click',()=>$('fileInput').click());
+$('fileInput').addEventListener('change',e=>{importData(e.target.files[0]);e.target.value='';});
+$('resetData').addEventListener('click',()=>{if(!confirm('确认清空所有本地数据？操作不可撤销，建议先导出备份。'))return;data=init();fill();renderRows();save();$('recordMessage').textContent='已清空本地数据';$('goalResult').style.display='none';['vBalance','vAverage','vDiff','vProjected'].forEach(id=>$(id).textContent='—');$('detailBody').innerHTML='<tr><td colspan="4" class="empty">暂无计算结果</td></tr>';note('本地记录已重置，请重新填写后计算。');});
+fill();renderRows();if(!storageAvailable)$('saveStatus').textContent='⚠ 本地保存不可用';if(data.baseAmount!=='')calculate();
+})();
+</script>
+</body>
+</html>
